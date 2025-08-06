@@ -41,6 +41,10 @@ func main() {
 	cmdHandlers.register("reset", handlerReset)
 	cmdHandlers.register("users", handlerUsers)
 	cmdHandlers.register("agg", handlerAggregator)
+	cmdHandlers.register("addfeed", handlerAddFeed)
+	cmdHandlers.register("feeds", handlerFeeds)
+	cmdHandlers.register("follow", handlerCreateFollow)
+	cmdHandlers.register("following", handlerFollowsPerUser)
 
 	if len(os.Args) < 2 {
 		fmt.Println("error: not enough arguments")
