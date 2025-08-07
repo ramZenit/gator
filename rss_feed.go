@@ -76,13 +76,9 @@ func (rss *RSSFeed) unescapeAll() {
 	}
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) < 2 {
 		return errors.New("missing arguments, syntax: addFeed <name> <url>")
-	}
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("unable to retrieve current user info: %w", err)
 	}
 	feedName := cmd.args[0]
 	feedURL := cmd.args[1]
@@ -125,15 +121,12 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerCreateFollow(s *state, cmd command) error {
+func handlerCreateFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) < 1 {
 		return errors.New("missing argument, syntax: follow <url>")
 	}
 	feedURL := cmd.args[0]
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("unable to retrieve current user info: %w", err)
-	}
+
 	feed, err := s.db.GetFeed(context.Background(), feedURL)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve feed info: %w", err)
@@ -153,8 +146,8 @@ func handlerCreateFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowsPerUser(s *state, cmd command) error {
-	feedList, err := s.db.GetFeedFollowsForUser(context.Background(), s.cfg.CurrentUserName)
+func handlerFollowsPerUser(s *state, cmd command, user database.User) error {
+	feedList, err := s.db.GetFeedFollowsForUser(context.Background(), user.Name)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve feed follows: %w", err)
 	}
@@ -165,4 +158,15 @@ func handlerFollowsPerUser(s *state, cmd command) error {
 		fmt.Println(feed.FeedName)
 	}
 	return nil
+}
+
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve user info: %w", err)
+		}
+		return handler(s, cmd, user)
+	}
+
 }
