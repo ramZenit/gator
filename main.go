@@ -34,17 +34,7 @@ func main() {
 		cfg: &cfg,
 	}
 
-	cmdHandlers := commands{make(map[string]func(*state, command) error)}
-
-	cmdHandlers.register("login", handlerLogin)
-	cmdHandlers.register("register", handlerRegister)
-	cmdHandlers.register("reset", handlerReset)
-	cmdHandlers.register("users", handlerUsers)
-	cmdHandlers.register("agg", handlerAggregator)
-	cmdHandlers.register("addfeed", middlewareLoggedIn(handlerAddFeed))
-	cmdHandlers.register("feeds", handlerFeeds)
-	cmdHandlers.register("follow", middlewareLoggedIn(handlerCreateFollow))
-	cmdHandlers.register("following", middlewareLoggedIn(handlerFollowsPerUser))
+	CMDs := loadCMDs()
 
 	if len(os.Args) < 2 {
 		fmt.Println("error: not enough arguments")
@@ -54,7 +44,7 @@ func main() {
 		name: os.Args[1],
 		args: os.Args[2:],
 	}
-	if err := cmdHandlers.run(&appState, cmd); err != nil {
+	if err := CMDs.run(&appState, cmd); err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}

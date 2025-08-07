@@ -8,10 +8,6 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/ramZenit/gator/internal/database"
 )
 
 type RSSFeed struct {
@@ -74,99 +70,4 @@ func (rss *RSSFeed) unescapeAll() {
 		rss.Channel.Item[i].Title = html.UnescapeString(rss.Channel.Item[i].Title)
 		rss.Channel.Item[i].Description = html.UnescapeString(rss.Channel.Item[i].Description)
 	}
-}
-
-func handlerAddFeed(s *state, cmd command, user database.User) error {
-	if len(cmd.args) < 2 {
-		return errors.New("missing arguments, syntax: addFeed <name> <url>")
-	}
-	feedName := cmd.args[0]
-	feedURL := cmd.args[1]
-	feedParams := database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Name:      feedName,
-		Url:       feedURL,
-		UserID:    user.ID,
-	}
-
-	feed, err := s.db.CreateFeed(context.Background(), feedParams)
-	if err != nil {
-		return fmt.Errorf("unable to create feed: %w", err)
-	}
-	feedFollow := database.CreateFeedFollowParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		UserID:    user.ID,
-		FeedID:    feed.ID,
-	}
-	_, err = s.db.CreateFeedFollow(context.Background(), feedFollow)
-	if err != nil {
-		return fmt.Errorf("unable to create feed follow: %w", err)
-	}
-	fmt.Printf("%+v\n", feed)
-	return nil
-}
-
-func handlerFeeds(s *state, cmd command) error {
-	feedList, err := s.db.GetFeeds(context.Background())
-	if err != nil {
-		return fmt.Errorf("unable to retrieve feed list: %w", err)
-	}
-	for _, feed := range feedList {
-		fmt.Println(feed.FeedName, feed.FeedUrl, feed.UserName)
-	}
-	return nil
-}
-
-func handlerCreateFollow(s *state, cmd command, user database.User) error {
-	if len(cmd.args) < 1 {
-		return errors.New("missing argument, syntax: follow <url>")
-	}
-	feedURL := cmd.args[0]
-
-	feed, err := s.db.GetFeed(context.Background(), feedURL)
-	if err != nil {
-		return fmt.Errorf("unable to retrieve feed info: %w", err)
-	}
-	feedFollow := database.CreateFeedFollowParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		UserID:    user.ID,
-		FeedID:    feed.ID,
-	}
-	_, err = s.db.CreateFeedFollow(context.Background(), feedFollow)
-	if err != nil {
-		return fmt.Errorf("unable to create feed follow: %w", err)
-	}
-	fmt.Printf("%s just followed %s\n", user.Name, feed.Name)
-	return nil
-}
-
-func handlerFollowsPerUser(s *state, cmd command, user database.User) error {
-	feedList, err := s.db.GetFeedFollowsForUser(context.Background(), user.Name)
-	if err != nil {
-		return fmt.Errorf("unable to retrieve feed follows: %w", err)
-	}
-	if len(feedList) == 0 {
-		return errors.New("no feeds followed")
-	}
-	for _, feed := range feedList {
-		fmt.Println(feed.FeedName)
-	}
-	return nil
-}
-
-func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
-	return func(s *state, cmd command) error {
-		user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-		if err != nil {
-			return fmt.Errorf("unable to retrieve user info: %w", err)
-		}
-		return handler(s, cmd, user)
-	}
-
 }
