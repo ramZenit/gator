@@ -42,6 +42,7 @@ func loadCMDs() commands {
 	cmdHandlers.register("feeds", handlerListFeeds)
 	cmdHandlers.register("follow", middlewareLoggedIn(handlerCreateFollow))
 	cmdHandlers.register("following", middlewareLoggedIn(handlerFollowsPerUser))
+	cmdHandlers.register("unfollow", middlewareLoggedIn(handlerUnfollowPerUser))
 	return cmdHandlers
 
 }

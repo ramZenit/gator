@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,5 +47,24 @@ func handlerFollowsPerUser(s *state, cmd command, user database.User) error {
 	for _, feed := range feedList {
 		fmt.Println(feed.FeedName)
 	}
+	return nil
+}
+
+func handlerUnfollowPerUser(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 1 {
+		log.Fatalf("missing argument, syntax: %s <URL>", cmd.name)
+		return errors.New("missing argument, syntax: follow <url>")
+	}
+	feedURL := cmd.args[0]
+
+	args := database.DeleteFeedFollowParams{
+		Name: user.Name,
+		Url:  feedURL,
+	}
+	err := s.db.DeleteFeedFollow(context.Background(), args)
+	if err != nil {
+		return fmt.Errorf("unable to unfollow feed: %w", err)
+	}
+	fmt.Println("Feed unfollowed")
 	return nil
 }
