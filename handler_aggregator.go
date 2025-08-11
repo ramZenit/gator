@@ -77,8 +77,15 @@ func scrapeFeeds(s *state) error {
 
 func convertTime(input string) time.Time {
 	t, err := time.Parse(time.RFC1123Z, input)
-	if err != nil {
-		log.Fatalf("unable to parse time: %s", err)
+	if err == nil {
+		return t
 	}
-	return t
+
+	t, err = time.Parse(time.RFC822, input)
+	if err == nil {
+		return t
+	}
+	// add more attemps in future (**not really**)
+	fmt.Printf("unable to parse time: %v", err)
+	return time.Now()
 }
