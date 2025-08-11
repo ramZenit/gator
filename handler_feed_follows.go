@@ -42,7 +42,8 @@ func handlerFollowsPerUser(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("unable to retrieve feed follows: %w", err)
 	}
 	if len(feedList) == 0 {
-		return errors.New("no feeds followed")
+		fmt.Println("no feeds followed")
+		return nil
 	}
 	for _, feed := range feedList {
 		fmt.Println(feed.FeedName)
