@@ -28,6 +28,8 @@ type RSSItem struct {
 
 var ErrNotFound = errors.New("not found")
 
+const ErrCodeUniqueViolation = "23505"
+
 func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	client := &http.Client{}
 	req, err := http.NewRequestWithContext(ctx, "GET", feedURL, nil)

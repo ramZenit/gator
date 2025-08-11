@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/ramZenit/gator/internal/database"
 )
 
@@ -33,11 +36,11 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return fmt.Errorf("error getting next feed to update %w", err)
 	}
-	args := database.MarkFeedFetchedParams{
+	argsFeed := database.MarkFeedFetchedParams{
 		UpdatedAt: time.Now(),
 		ID:        nextFeed.ID,
 	}
-	err = s.db.MarkFeedFetched(context.Background(), args)
+	err = s.db.MarkFeedFetched(context.Background(), argsFeed)
 	if err != nil {
 		return fmt.Errorf("error in marking feed fetched %w", err)
 	}
@@ -45,9 +48,37 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return fmt.Errorf("failed fetching RSSfeed %w", err)
 	}
+
+	var argsPost = database.CreatePostParams{}
+
 	fmt.Printf("**Channel: %s\n", rssFeed.Channel.Title)
 	for _, feed := range rssFeed.Channel.Item {
-		fmt.Printf("**Feed title: %s\n", feed.Title)
+		pubDate := convertTime(feed.PubDate)
+		argsPost.ID = uuid.New()
+		argsPost.CreatedAt = time.Now()
+		argsPost.UpdatedAt = time.Now()
+		argsPost.Title = feed.Title
+		argsPost.Url = feed.Link
+		argsPost.Description = feed.Description
+		argsPost.PublishedAt = pubDate
+		argsPost.FeedID = nextFeed.ID
+		_, err := s.db.CreatePost(context.Background(), argsPost)
+		if err != nil {
+			var pqErr *pq.Error
+			if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+				continue
+			} else {
+				return fmt.Errorf("failed to create post %w", err)
+			}
+		}
 	}
 	return nil
+}
+
+func convertTime(input string) time.Time {
+	t, err := time.Parse(time.RFC1123Z, input)
+	if err != nil {
+		log.Fatalf("unable to parse time: %s", err)
+	}
+	return t
 }
