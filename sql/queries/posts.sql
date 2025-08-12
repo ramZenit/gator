@@ -22,4 +22,4 @@ FROM posts p
     JOIN feed_follows ff ON p.feed_id = ff.feed_id
 WHERE ff.user_id = $1
 ORDER BY p.published_at DESC
-LIMIT $2;
+LIMIT $2 OFFSET $3;

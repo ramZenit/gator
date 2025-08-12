@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,4 +89,34 @@ func convertTime(input string) time.Time {
 	// add more attemps in future (**not really**)
 	fmt.Printf("unable to parse time: %v", err)
 	return time.Now()
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	var limit int32 = 2
+	if len(cmd.args) != 0 {
+		num, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("unable to parse <LIMIT> argument: %w", err)
+		}
+		limit = int32(num)
+	}
+
+	args := database.GetPostsPerUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	}
+	posts, err := s.db.GetPostsPerUser(context.Background(), args)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve posts: %w", err)
+	}
+	for _, post := range posts {
+		published := post.PublishedAt.Format(time.RFC822)
+		fmt.Println("**************************")
+		fmt.Printf("-- %s --\n", post.Title)
+		fmt.Printf("-- %s --\n", published)
+		fmt.Printf("%s\n", post.Description)
+		fmt.Printf("more at: %s\n", post.Url)
+		fmt.Println("**************************")
+	}
+	return nil
 }
